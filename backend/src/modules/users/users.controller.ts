@@ -15,9 +15,9 @@ import {
 } from '@nestjs/swagger';
 
 @ApiTags('Users')
-@Controller('users')
+@Controller('api/users')
 export class UsersController {
-  constructor(private readonly userService: UsersService) {}
+  constructor(private readonly userService: UsersService) { }
 
   @Post('create-user')
   @ApiOperation({ summary: 'Create a new user (Signup)' })
@@ -34,6 +34,10 @@ export class UsersController {
 
     if (existingUser) {
       throw new BadRequestException('Email already exists');
+    }
+
+    if (!createUserDto.acceptedTerms) {
+      throw new BadRequestException('You must accept the Terms & Conditions');
     }
 
     const user = await this.userService.create(createUserDto);

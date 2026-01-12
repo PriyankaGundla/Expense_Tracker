@@ -1,11 +1,13 @@
-import React from "react";
+import axios from "axios";
 
-function API () {
-    return (
-        <>
-            <h1> API CAlls</h1>
-        </>
-    )
-}
+// const BASE_URL = "http://0.0.0.0:8000/api/";
+const BASE_URL = "http://localhost:3000/api"
 
-export default API;
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+export default api;

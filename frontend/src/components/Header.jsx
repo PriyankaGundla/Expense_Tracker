@@ -50,7 +50,6 @@ export default function Header() {
   const handleNotifClose = () => setNotifAnchorEl(null);
 
   const handleMenuAction = (action) => {
-    console.log(action);
     handlePopoverClose();
     navigator("/login");
   };

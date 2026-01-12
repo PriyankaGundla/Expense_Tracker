@@ -1,9 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn
+} from 'typeorm';
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   name: string;
@@ -12,5 +18,26 @@ export class User {
   email: string;
 
   @Column()
-  password: string; 
+  password: string;
+
+  @Column({ nullable: true })
+  profileImage?: string;
+
+  @Column({ nullable: true })
+  company?: string;
+
+  @Column({ nullable: true })
+  department?: string;
+
+  @Column()
+  designation: string;
+
+  @Column({ default: false })
+  acceptedTerms: boolean;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
