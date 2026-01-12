@@ -5,8 +5,10 @@ import {
   MaxLength,
   Matches,
   IsString,
+  IsOptional,
+  IsBoolean
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
 export class CreateUserDto {
@@ -48,4 +50,38 @@ export class CreateUserDto {
     },
   )
   password: string;
+
+  @ApiPropertyOptional({ description: 'Profile image URL' })
+  @IsOptional()
+  @IsString()
+  profileImage?: string;
+
+  @ApiPropertyOptional({ description: 'Company name' })
+  @IsOptional()
+  @IsString()
+  company?: string;
+
+  @ApiPropertyOptional({ description: 'Department name' })
+  @IsOptional()
+  @IsString()
+  department?: string;
+
+  @ApiProperty({
+    description: 'User working designation',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(50)
+  @Matches(/^[A-Za-z ]+$/, {
+    message: 'Designation can contain only letters and spaces',
+  })
+  designation: string;
+
+  @ApiProperty({
+    description: 'Whether the user has accepted Terms & Conditions',
+  })
+  @IsBoolean({ message: 'acceptedTerms must be true or false' })
+  acceptedTerms: boolean;
+
 }

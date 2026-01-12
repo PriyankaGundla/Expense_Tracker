@@ -36,7 +36,7 @@ function CategoryForm({ open, onClose, onSave, category, usedIcons = [] }) {
     const [name, setName] = useState("");
     const [iconKey, setIconKey] = useState("");
 
-      /* Save handler */
+    /* Save handler */
     const handleSave = () => {
         onSave({
             name,
@@ -118,6 +118,7 @@ function CategoryForm({ open, onClose, onSave, category, usedIcons = [] }) {
             <DialogActions sx={{ px: 3, pb: 3, gap: 2 }}>
                 <Button onClick={onClose}>Cancel</Button>
                 <Button
+                    type="submit"
                     variant="contained"
                     sx={{
                         borderRadius: "15px",
@@ -127,7 +128,6 @@ function CategoryForm({ open, onClose, onSave, category, usedIcons = [] }) {
                         },
                     }}
                     onClick={handleSave}
-                    disabled={!name || !iconKey}
                 >
                     Save
                 </Button>

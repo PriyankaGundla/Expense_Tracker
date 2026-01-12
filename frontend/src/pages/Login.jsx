@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 
 
 function Login() {
-    const theme = useTheme(); // Access current theme
+    const theme = useTheme();
     const navigate = useNavigate();
 
     const [email, setEmail] = useState("");
