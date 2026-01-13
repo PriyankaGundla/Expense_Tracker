@@ -10,7 +10,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { name, email, password, profileImage, company, department, designation, acceptedTerms } = createUserDto;
@@ -35,4 +35,13 @@ export class UsersService {
   async findByEmail(email: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { email } });
   }
+
+  async findById(id: string): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { id },
+    });
+  }
+
 }
+
+
