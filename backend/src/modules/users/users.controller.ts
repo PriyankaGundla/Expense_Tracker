@@ -1,8 +1,12 @@
 import {
   Controller,
   Post,
+  Get,
+  Param,
+  NotFoundException,
   Body,
   BadRequestException,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './DTO/create-user.dto';
@@ -45,4 +49,24 @@ export class UsersController {
     const { password, ...result } = user;
     return result;
   }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiResponse({ status: 200, description: 'User fetched successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid UUID format' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getUserById(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<Partial<User>> {
+
+    const user = await this.userService.findById(id);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { password, ...result } = user;
+    return result;
+  }
+
 }
