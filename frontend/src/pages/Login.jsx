@@ -12,26 +12,101 @@ import {
     FormControlLabel,
     Link,
     useTheme,
+    Snackbar,
+    Alert,
 } from "@mui/material";
 import { Visibility, VisibilityOff, AccountCircle, Lock } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-
+import { auth } from "../services/authService";
 
 function Login() {
     const theme = useTheme();
     const navigate = useNavigate();
 
+    const [notification, setNotification] = useState({
+        open: false,
+        message: "",
+        severity: "error",
+    });
+
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const [form, setForm] = useState({
+        email: "",
+        password: "",
+    });
+    const [errors, setErrors] = useState({
+        email: "",
+        password: "",
+    });
 
-    const handleSubmit = (e) => {
+    const validators = {
+        email: (value) => {
+            if (!value.trim()) return "Email is required";
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Invalid email format";
+            return "";
+        },
+        password: (value) => {
+            if (!value) return "Password is required";
+            if (value.length < 8) return "Password must be at least 8 characters";
+            if (!/(?=.*[a-z])/.test(value)) return "Password must contain a lowercase letter";
+            if (!/(?=.*[A-Z])/.test(value)) return "Password must contain an uppercase letter";
+            if (!/(?=.*\d)/.test(value)) return "Password must contain a number";
+            if (!/(?=.*[@$!%*?&])/.test(value)) return "Password must contain a special character";
+            return "";
+        }
+    };
+
+    const handleChange = (field) => (e) => {
+        const value = e.target.value;
+
+        // Update form state
+        setForm((prev) => ({ ...prev, [field]: value }));
+
+        // Update errors dynamically
+        setErrors((prev) => ({
+            ...prev,
+            [field]: validators[field](value),
+        }));
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("Login Data:", { email, password, rememberMe });
-        console.log("dashboard")
-        navigate("/dashboard");
 
+        // Validate all fields on submit
+        const validationErrors = {};
+        Object.keys(form).forEach((key) => {
+            validationErrors[key] = validators[key](form[key]);
+        });
+
+        setErrors(validationErrors);
+
+        const hasError = Object.values(validationErrors).some((err) => err);
+        if (hasError) return;
+
+        const user = {
+            email: form.email.trim().toLowerCase(),
+            password: form.password,
+        };
+
+        try {
+            const res = await auth(user);
+            console.log(res.data);
+            navigate("/dashboard");
+
+        } catch (err) {
+            const message =
+                err?.response?.data?.message || "Something went wrong";
+
+            setNotification({
+                open: true,
+                message,
+                severity: "error",
+            });
+        }
     };
 
     const togglePasswordVisibility = () => {
@@ -86,8 +161,10 @@ function Login() {
                             label="Username"
                             variant="outlined"
                             margin="normal"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            value={form.email}
+                            onChange={handleChange("email")}
+                            helperText={errors.email}
+                            FormHelperTextProps={{ sx: { color: "error.main", ml: 0 } }}
                             InputProps={{
                                 startAdornment: (
                                     <InputAdornment position="start">
@@ -107,8 +184,10 @@ function Login() {
                             label="Password"
                             variant="outlined"
                             margin="normal"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            value={form.password}
+                            onChange={handleChange("password")}
+                            helperText={errors.password}
+                            FormHelperTextProps={{ sx: { color: "error.main", ml: 0 } }}
                             InputProps={{
                                 startAdornment: (
                                     <InputAdornment position="start">
@@ -118,7 +197,7 @@ function Login() {
                                 endAdornment: (
                                     <InputAdornment position="end">
                                         <IconButton onClick={togglePasswordVisibility} edge="end">
-                                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                                            {showPassword ? <Visibility /> : <VisibilityOff />}
                                         </IconButton>
                                     </InputAdornment>
                                 ),
@@ -237,7 +316,26 @@ function Login() {
 
                 </CardContent>
             </Card>
+
+            <Snackbar
+                open={notification.open}
+                autoHideDuration={4000}
+                onClose={() => setNotification({ ...notification, open: false })}
+                anchorOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+                <Alert
+                    onClose={() => setNotification({ ...notification, open: false })}
+                    severity={notification.severity}
+                    variant="filled"
+                    sx={{ width: "100%" }}
+                >
+                    {notification.message}
+                </Alert>
+            </Snackbar>
+
         </Box>
+
+
     );
 }
 
