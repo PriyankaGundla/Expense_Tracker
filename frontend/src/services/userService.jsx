@@ -9,3 +9,13 @@ export const createUser = async ( data ) => {
         throw error;
     }
 }
+
+export const getUserById = async ( userId ) => {
+    try {
+        const response = await api.get(`users/${userId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error:", error);
+        throw error;
+    }
+}
