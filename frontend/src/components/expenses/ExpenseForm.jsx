@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -17,11 +17,168 @@ import CategoryIcon from "@mui/icons-material/Category";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import TitleIcon from '@mui/icons-material/Title';
+import { createExpense, getExpenseById, updateExpense } from "../../services/expenseService";
 
 const categories = ["Food", "Bills", "Travel", "Shopping", "Other"];
 
-function ExpenseForm({ open, onClose, onSave, expense }) {
+function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
   const theme = useTheme();
+  const [formData, setFormData] = useState({
+    title: "",
+    category: "",
+    amount: "",
+    date: "",
+  });
+
+  const [errors, setErrors] = useState({
+    title: "",
+    category: "",
+    amount: "",
+    date: "",
+  });
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      category: "",
+      amount: "",
+      date: "",
+    });
+
+    setErrors({
+      title: "",
+      category: "",
+      amount: "",
+      date: "",
+    });
+  };
+
+
+  const validate = () => {
+    let valid = true;
+    const newErrors = {
+      title: "",
+      category: "",
+      amount: "",
+      date: "",
+    };
+
+    if (!formData.title.trim()) {
+      newErrors.title = "Title is required";
+      valid = false;
+    } else if (formData.title.length < 3) {
+      newErrors.title = "Title must be at least 3 characters";
+      valid = false;
+    }
+
+    if (!formData.category) {
+      newErrors.category = "Category is required";
+      valid = false;
+    }
+
+    if (!formData.amount) {
+      newErrors.amount = "Amount is required";
+      valid = false;
+    } else if (Number(formData.amount) <= 0) {
+      newErrors.amount = "Amount must be greater than 0";
+      valid = false;
+    }
+
+    if (!formData.date) {
+      newErrors.date = "Date is required";
+      valid = false;
+    }
+
+    setErrors(newErrors);
+    return valid;
+  };
+
+
+
+  useEffect(() => {
+    if (!expenseId || !open) {
+      resetForm();
+      return;
+    }
+
+    const fetchExpense = async () => {
+      try {
+        const data = await getExpenseById(expenseId);
+
+        const convertToInputDate = (date) => {
+          const [day, month, year] = date.split("-");
+          return `${year}-${month}-${day}`;
+        };
+
+
+        setFormData({
+          title: data.title || "",
+          category: data.category || "",
+          amount: data.amount || "",
+          date: convertToInputDate(data.date),
+        });
+      } catch (error) {
+        console.error("Failed to fetch expense", error);
+      }
+    };
+
+    fetchExpense();
+  }, [expenseId, open]);
+
+
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: "",
+    }));
+  };
+
+
+
+
+  const onSave = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    try {
+      console.log("Form Data to be saved:", formData);
+      const formatDate = (date) => {
+
+        const [year, month, day] = date.split("-");
+        return `${day}-${month}-${year}`;
+      };
+      const expenseData = {
+        title: formData.title,
+        category: formData.category,
+        amount: parseFloat(formData.amount),
+        date: formatDate(formData.date),
+      }
+
+      console.log("expenseData", expenseData)
+
+      if (expenseId) {
+        // UPDATE
+        await updateExpense(expenseId, expenseData);
+      } else {
+        // CREATE
+        await createExpense(expenseData);
+      } 
+      onSuccess(); // triggers GET API in parent
+      resetForm();
+
+      onClose();
+    } catch (error) {
+      console.error("Failed to create expense", error);
+    }
+  };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
@@ -40,7 +197,12 @@ function ExpenseForm({ open, onClose, onSave, expense }) {
           fullWidth
           margin="normal"
           label="Title"
+          name="title"
+          value={formData.title}
+          onChange={handleChange}
           variant="outlined"
+          helperText={errors.title}
+          FormHelperTextProps={{ sx: { color: "error.main", ml: 0 } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -56,7 +218,12 @@ function ExpenseForm({ open, onClose, onSave, expense }) {
           fullWidth
           margin="normal"
           label="Category"
+          name="category"
           variant="outlined"
+          value={formData.category}
+          onChange={handleChange}
+          helperText={errors.category}
+          FormHelperTextProps={{ sx: { color: "error.main", ml: 0 } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -78,7 +245,12 @@ function ExpenseForm({ open, onClose, onSave, expense }) {
           margin="normal"
           label="Amount"
           type="number"
+          name="amount"
           variant="outlined"
+          value={formData.amount}
+          onChange={handleChange}
+          helperText={errors.amount}
+          FormHelperTextProps={{ sx: { color: "error.main", ml: 0 } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -94,7 +266,12 @@ function ExpenseForm({ open, onClose, onSave, expense }) {
           margin="normal"
           label="Date"
           type="date"
+          name="date"
           variant="outlined"
+          value={formData.date}
+          onChange={handleChange}
+          helperText={errors.date}
+          FormHelperTextProps={{ sx: { color: "error.main", ml: 0 } }}
           InputLabelProps={{ shrink: true }}
           InputProps={{
             startAdornment: (
@@ -111,7 +288,10 @@ function ExpenseForm({ open, onClose, onSave, expense }) {
 
 
       <DialogActions sx={{ px: 3, pb: 3, gap: 2 }}>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={() => {
+          resetForm();
+          onClose();
+        }}>Cancel</Button>
         <Button
           type="submit"
           variant="contained"
