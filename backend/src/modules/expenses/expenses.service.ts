@@ -13,17 +13,30 @@ export class ExpensesService {
   ) { }
 
   async createExpense(createExpenseDto: CreateExpenseDto): Promise<Expense> {
+    // 🔴 Check duplicate title (case-insensitive)
+    const existingExpense = await this.expenseRepository
+      .createQueryBuilder('expense')
+      .where('LOWER(expense.title) = LOWER(:title)', {
+        title: createExpenseDto.title.trim(),
+      })
+      .getOne();
+
+    if (existingExpense) {
+      throw new BadRequestException('Expense with this title already exists');
+    }
+
+    // 🔹 Date parsing
     const [day, month, year] = createExpenseDto.date.split('-').map(Number);
 
-    // Convert to JS Date
     const date = new Date(year, month - 1, day);
     if (isNaN(date.getTime())) {
       throw new BadRequestException('Invalid date');
     }
 
-    // Save as Date (ISO in DB automatically)
+    // 🔹 Create entity
     const expense = this.expenseRepository.create({
       ...createExpenseDto,
+      title: createExpenseDto.title.trim(),
       date,
     });
 
@@ -40,7 +53,12 @@ export class ExpensesService {
 
 
   async getAllExpenses(): Promise<any[]> {
-    const expenses = await this.expenseRepository.find();
+    const expenses = await this.expenseRepository.find({
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+
 
     return expenses.map(exp => ({
       id: exp.id,
@@ -50,7 +68,6 @@ export class ExpensesService {
       date: this.formatDate(exp.date),
     }));
   }
-
 
 
 

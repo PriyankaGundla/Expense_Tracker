@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { getExpenses } from "../../services/expenseService";
 
 function ExpenseList({ expenses = [], onEdit, onDelete }) {
   const theme = useTheme();
@@ -26,6 +27,7 @@ function ExpenseList({ expenses = [], onEdit, onDelete }) {
   // 🔹 Pagination state
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+
 
   useEffect(() => {
     console.log("onDelete", onDelete)

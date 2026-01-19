@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
     Box,
     Typography,
@@ -19,6 +19,7 @@ import ExpenseForm from "../components/expenses/ExpenseForm";
 import ExpenseList from "../components/expenses/ExpenseList";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteNotification from "../components/DeleteNotification";
+import { getExpenses, deleteExpense } from "../services/expenseService";
 
 const initialExpenses = [
     { id: 1, title: "Groceries", category: "Food", amount: 1200, date: "2025-01-10" },
@@ -58,7 +59,20 @@ function ExpensePage() {
         (_, index) => currentYear - index
     );
 
+    console.log("expenses", expenses);
 
+    const fetchExpenses = async () => {
+        try {
+            const data = await getExpenses();
+            setExpenses(data);
+        } catch (error) {
+            console.error("Failed to fetch expenses", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchExpenses();
+    }, []);
 
 
     const filteredExpenses = useMemo(() => {
@@ -86,30 +100,34 @@ function ExpensePage() {
         setOpenForm(true);
     };
 
-    const handleSaveExpense = (expense) => {
-        if (expense.id) {
-            // Edit
-            setExpenses((prev) =>
-                prev.map((e) => (e.id === expense.id ? expense : e))
-            );
-        } else {
-            // Add
-            setExpenses((prev) => [
-                ...prev,
-                { ...expense, id: Date.now() },
-            ]);
-        }
-        setOpenForm(false);
-    };
-
     const handleEdit = (expense) => {
         setEditingExpense(expense);
         setOpenForm(true);
     };
 
-    const handleDelete = (id) => {
-        setExpenses((prev) => prev.filter((e) => e.id !== id));
+    const handleDeleteClick = (id) => {
+        setDeleteId(id);                 // store id
+        setOpenDeleteDialog(true);       // open popup
     };
+
+    const confirmDelete = async () => {
+        try {
+            await deleteExpense(deleteId);   // ✅ API here
+            fetchExpenses();                 // refresh list
+        } catch (error) {
+            console.error("Failed to delete expense", error);
+        } finally {
+            setOpenDeleteDialog(false);
+            setDeleteId(null);
+        }
+    };
+
+    const cancelDelete = () => {
+        setOpenDeleteDialog(false);
+        setDeleteId(null);
+    };
+
+
 
     return (
         <Box
@@ -258,22 +276,19 @@ function ExpensePage() {
 
                     <Box sx={{ mt: 4 }}>
                         <ExpenseList
-                            expenses={initialExpenses}
+                            expenses={expenses}
                             onEdit={(expense) => {
                                 setEditingExpense(expense);
                                 setOpenForm(true);
                             }}
-                            onDelete={(id) => {
-                                setDeleteId(id);              // store id
-                                setOpenDeleteDialog(true);    // open confirmation
-                            }}
+                            onDelete={handleDeleteClick}
                         />
 
                         <ExpenseForm
                             open={openForm}
                             onClose={() => setOpenForm(false)}
-                            onSave={handleSaveExpense}
-                            expense={editingExpense}
+                            expenseId={editingExpense?.id}
+                            onSuccess={fetchExpenses}
                         />
                     </Box>
 
@@ -285,14 +300,8 @@ function ExpensePage() {
 
             <DeleteNotification
                 open={openDeleteDialog}
-                onClose={() => setOpenDeleteDialog(false)}
-                onConfirm={() => {
-                    setExpenses((prev) =>
-                        prev.filter((e) => e.id !== deleteId)
-                    );
-                    setOpenDeleteDialog(false);
-                    setDeleteId(null);
-                }}
+                onClose={cancelDelete}
+                onConfirm={confirmDelete}
                 name={"expenses"}
             />
         </Box>
