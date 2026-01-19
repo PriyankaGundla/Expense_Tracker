@@ -26,7 +26,14 @@ async function bootstrap() {
     .setTitle('Expense Tracker API')
     .setDescription('API documentation for Expense Tracker backend')
     .setVersion('1.0')
-    .addBearerAuth() // for JWT later
+    .addBearerAuth( // ✅ Add this line
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+      'JWT', // This is the name of the security scheme
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

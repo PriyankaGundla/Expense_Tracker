@@ -6,9 +6,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ExpensesModule } from './modules/expenses/expenses.module';
 
 @Module({
- imports: [
+  imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -25,8 +26,9 @@ import { AuthModule } from './modules/auth/auth.module';
     }),
     UsersModule,
     AuthModule,
+    ExpensesModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ExpensesService],
+  providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

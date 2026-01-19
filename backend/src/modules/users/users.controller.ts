@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './DTO/create-user.dto';
-import { User } from 'src/entities/users/user.entity';
+import { User } from 'src/entities/user.entity';
 import {
   ApiTags,
   ApiOperation,
