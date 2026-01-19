@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -16,18 +16,17 @@ import {
 import { Notifications } from "@mui/icons-material";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
-
 import { useThemeMode } from "../context/ThemeContext";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import { useNavigate } from "react-router-dom";
-
+import { getUserById } from "../services/userService";
 
 
 export default function Header() {
   const theme = useTheme();
   const navigator = useNavigate();
   const { darkMode, toggleDarkMode } = useThemeMode();
-
+  const [user, setUser] = useState(null);
   // Avatar popover state
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -51,8 +50,31 @@ export default function Header() {
 
   const handleMenuAction = (action) => {
     handlePopoverClose();
+    // navigator("/login");
+  };
+
+  const logout = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
     navigator("/login");
   };
+
+
+  useEffect(() => {
+    // Fetch user data on mount (example userId used here)
+    const fetchUserData = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        const userData = await getUserById(user.id);
+        console.log("User Data:", userData.name);
+        setUser(userData);
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
     <Box
@@ -73,7 +95,7 @@ export default function Header() {
         fontWeight={600}
         sx={{ display: "flex", alignItems: "center", gap: 1 }}
       >
-        Welcome, Priyanka Gundla <HandshakeIcon sx={{ color: theme.palette.primary.main }} />
+        Welcome, {user?.name} <HandshakeIcon sx={{ color: theme.palette.primary.main }} />
       </Typography>
 
       {/* Right side */}
@@ -106,7 +128,14 @@ export default function Header() {
 
         {/* User Avatar */}
         <IconButton onClick={handleAvatarClick} sx={{ p: 0 }}>
-          <Avatar sx={{ bgcolor: theme.palette.primary.main }}>PG</Avatar>
+          <Avatar
+            src={user?.profileImage || undefined}
+            sx={{
+              bgcolor: theme.palette.primary.main,
+            }}
+          >
+            {!user?.profileImage && user?.name?.charAt(0).toUpperCase()}
+          </Avatar>
         </IconButton>
 
         {/* Avatar Popover */}
@@ -118,13 +147,13 @@ export default function Header() {
           transformOrigin={{ vertical: "top", horizontal: "right" }}
         >
           <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2, minWidth: 200 }}>
-            <Box sx={{ display: "flex", alignItems: "center"}}>
-              <Typography fontWeight={600}>Priyanka Gundla</Typography>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Typography fontWeight={600}>{user?.name}</Typography>
             </Box>
 
             <Button variant="outlined" onClick={() => handleMenuAction("viewProfile")}>View Profile</Button>
             <Button variant="outlined" onClick={() => handleMenuAction("editProfile")}>Edit Profile</Button>
-            <Button color="error" variant="outlined" onClick={() => handleMenuAction("logout")}>Logout</Button>
+            <Button color="error" variant="outlined" onClick={logout}>Logout</Button>
 
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <Typography>Dark Mode</Typography>

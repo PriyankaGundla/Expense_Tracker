@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Drawer,
   List,
@@ -16,6 +16,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import CategoryIcon from "@mui/icons-material/Category";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getUserById } from "../services/userService";
 
 const drawerWidth = 300;
 
@@ -29,6 +30,24 @@ function Sidebar() {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Fetch user data on mount (example userId used here)
+    const fetchUserData = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        const userData = await getUserById(user.id);
+        console.log("User Data:", userData.name);
+        setUser(userData);
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
     <Drawer
@@ -62,18 +81,19 @@ function Sidebar() {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 1,
+          gap: 2,
         }}
       >
         <Avatar
-          src="/avatar.png" // replace with API image later
+          src={user?.profileImage || undefined}
           sx={{
             width: 100,
             height: 100,
             bgcolor: theme.palette.primary.main,
+            fontSize: 40,
           }}
         >
-          P
+          {!user?.profileImage && user?.name?.charAt(0).toUpperCase()}
         </Avatar>
 
         <Typography
@@ -81,7 +101,7 @@ function Sidebar() {
           fontWeight={600}
           color="text.primary"
         >
-          Priyanka Gundla
+          {user ? user.name : "Loading..."}
         </Typography>
       </Box>
 

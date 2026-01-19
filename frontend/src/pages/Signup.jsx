@@ -14,11 +14,13 @@ import {
   useTheme,
 } from "@mui/material";
 import { Visibility, VisibilityOff, AccountCircle, Lock, Email, Work } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 import TermsDialog from "./TermsAndConditions";
 import { createUser } from "../services/userService";
 
 function Signup() {
   const theme = useTheme();
+  const navigate = useNavigate();
 
   const [openTerms, setOpenTerms] = useState(false);
   const [form, setForm] = useState({
@@ -134,10 +136,13 @@ function Signup() {
     try {
       const res = await createUser(user);
       console.log(res.data);
+      navigate("/login");
+
     } catch (err) {
       console.error(err);
     }
   };
+
 
   // -------------------- Render --------------------
   return (
@@ -247,54 +252,65 @@ function Signup() {
             {errors.agree && <Typography variant="caption" color="error" sx={{ display: "block", ml: 1 }}>{errors.agree}</Typography>}
 
             {/* Submit */}
-            <Button type="submit" fullWidth variant="contained" sx={{ mt: 2, py: 1.5, borderRadius: "15px", fontWeight: 600, background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)` }}>
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{
+                mt: 2,
+                py: 1.5,
+                borderRadius: "15px",
+                fontWeight: 600,
+                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`
+              }}
+            >
               Sign Up
             </Button>
           </form>
 
-          <Box 
-            sx={{ 
-              display: "flex", 
-              alignItems: "center", 
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
               my: 2,
-           }} 
-          > 
-            <Box sx={{ flex: 1, height: "1px", backgroundColor: "#ccc" }} /> 
-            <Typography sx={{ mx: 2, color: "#888", fontWeight: 500 }}> 
-                OR 
-            </Typography> 
-            <Box sx={{ flex: 1, height: "1px", backgroundColor: "#ccc" }} /> 
-          </Box> 
-          
-          <Button 
-            variant="outlined" 
-            fullWidth 
-            // onClick={handleGoogleLogin} 
-            sx={{ 
-              py: 1.5, 
-              borderRadius: "15px", 
-              borderColor: theme.palette.primary.main, 
-              color: theme.palette.text.primary, 
-              textTransform: "none", 
-              display: "flex", 
-              alignItems: "center", 
-              justifyContent: "center", 
-              gap: 1, 
-            }} 
+            }}
           >
-            <Box 
-              component="img" 
-              src="/public/google-logo.png" 
-              sx={{ width: 40, height: 20, }} 
-            /> 
-              Continue with Google 
-          </Button> 
-            <Typography variant="body2" sx={{ mt: 2, textAlign: "center" }} > 
-                Already have an account?{" "} 
-                <Link href="/login" underline="hover"> 
-                  Login 
-                </Link>
+            <Box sx={{ flex: 1, height: "1px", backgroundColor: "#ccc" }} />
+            <Typography sx={{ mx: 2, color: "#888", fontWeight: 500 }}>
+              OR
             </Typography>
+            <Box sx={{ flex: 1, height: "1px", backgroundColor: "#ccc" }} />
+          </Box>
+
+          <Button
+            variant="outlined"
+            fullWidth
+            // onClick={handleGoogleLogin} 
+            sx={{
+              py: 1.5,
+              borderRadius: "15px",
+              borderColor: theme.palette.primary.main,
+              color: theme.palette.text.primary,
+              textTransform: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1,
+            }}
+          >
+            <Box
+              component="img"
+              src="/public/google-logo.png"
+              sx={{ width: 40, height: 20, }}
+            />
+            Continue with Google
+          </Button>
+          <Typography variant="body2" sx={{ mt: 2, textAlign: "center" }} >
+            Already have an account?{" "}
+            <Link href="/login" underline="hover">
+              Login
+            </Link>
+          </Typography>
         </CardContent>
       </Card>
 
