@@ -13,35 +13,38 @@ export class ExpensesService {
   ) { }
 
   async createExpense(createExpenseDto: CreateExpenseDto): Promise<Expense> {
-    // 🔴 Check duplicate title (case-insensitive)
+    const title = createExpenseDto.title.trim();
+
+    // 🔹 Parse date (dd-mm-yyyy)
+    const [day, month, year] = createExpenseDto.date.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+
+    if (isNaN(date.getTime())) {
+      throw new BadRequestException('Invalid date format');
+    }
+
+    // 🔹 Check duplicate (same title + same date)
     const existingExpense = await this.expenseRepository
       .createQueryBuilder('expense')
-      .where('LOWER(expense.title) = LOWER(:title)', {
-        title: createExpenseDto.title.trim(),
-      })
+      .where('LOWER(expense.title) = LOWER(:title)', { title })
+      .andWhere('expense.date = :date', { date })
       .getOne();
 
     if (existingExpense) {
-      throw new BadRequestException('Expense with this title already exists');
+      throw new BadRequestException(
+        'Expense with the same title already exists for this date',
+      );
     }
 
-    // 🔹 Date parsing
-    const [day, month, year] = createExpenseDto.date.split('-').map(Number);
-
-    const date = new Date(year, month - 1, day);
-    if (isNaN(date.getTime())) {
-      throw new BadRequestException('Invalid date');
-    }
-
-    // 🔹 Create entity
     const expense = this.expenseRepository.create({
       ...createExpenseDto,
-      title: createExpenseDto.title.trim(),
+      title,
       date,
     });
 
     return this.expenseRepository.save(expense);
   }
+
 
   private formatDate(date: Date | string): string {
     const d = new Date(date);
@@ -137,6 +140,25 @@ export class ExpensesService {
 
     return {
       message: 'Expense deleted successfully',
+    };
+  }
+
+  async getTotalExpenseByMonth(year: number, month: number) {
+    // Month is 1-based (Jan = 1)
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 1);
+
+    const result = await this.expenseRepository
+      .createQueryBuilder('expense')
+      .select('COALESCE(SUM(expense.amount), 0)', 'total')
+      .where('expense.date >= :startDate', { startDate })
+      .andWhere('expense.date < :endDate', { endDate })
+      .getRawOne();
+
+    return {
+      year,
+      month,
+      totalExpense: Number(result.total),
     };
   }
 

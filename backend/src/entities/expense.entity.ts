@@ -11,7 +11,7 @@ export class Expense {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 100, unique: true })
+  @Column({ length: 100 })
   title: string;
 
   @Column({ length: 50 })
