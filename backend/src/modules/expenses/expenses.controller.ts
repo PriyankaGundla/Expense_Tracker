@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Get, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Param, Put, Delete, Query, ParseUUIDPipe } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './DTO/create-expense.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -25,9 +25,20 @@ export class ExpensesController {
     return this.expensesService.getAllExpenses();
   }
 
+  @Get('total-expense')
+  @ApiOperation({ summary: 'Get total expense for a specific month and year' })
+  async getMonthlyTotal(
+    @Query('year') year: number,
+    @Query('month') month: number,
+  ) {
+    return this.expensesService.getTotalExpenseByMonth(year, month);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get expense by ID' })
-  async getById(@Param('id') id: string) {
+  async getById(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.expensesService.getExpenseById(id);
   }
 
@@ -45,4 +56,6 @@ export class ExpensesController {
   async delete(@Param('id') id: string) {
     return this.expensesService.deleteExpense(id);
   }
+
+
 }
