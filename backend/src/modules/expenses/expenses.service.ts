@@ -143,10 +143,14 @@ export class ExpensesService {
     };
   }
 
-  async getTotalExpenseByMonth(year: number, month: number) {
-    // Month is 1-based (Jan = 1)
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 1);
+  async getCurrentMonthTotalExpense() {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-based
+
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 1);
 
     const result = await this.expenseRepository
       .createQueryBuilder('expense')
@@ -157,10 +161,11 @@ export class ExpensesService {
 
     return {
       year,
-      month,
+      month: month + 1, // convert to 1-based for response
       totalExpense: Number(result.total),
     };
   }
+
 
 
 }

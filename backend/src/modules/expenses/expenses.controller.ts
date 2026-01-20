@@ -25,13 +25,10 @@ export class ExpensesController {
     return this.expensesService.getAllExpenses();
   }
 
-  @Get('total-expense')
-  @ApiOperation({ summary: 'Get total expense for a specific month and year' })
-  async getMonthlyTotal(
-    @Query('year') year: number,
-    @Query('month') month: number,
-  ) {
-    return this.expensesService.getTotalExpenseByMonth(year, month);
+  @Get('total-expense/current-month')
+  @ApiOperation({ summary: 'Get total expense for a current month' })
+  getCurrentMonthTotal() {
+    return this.expensesService.getCurrentMonthTotalExpense();
   }
 
   @Get(':id')

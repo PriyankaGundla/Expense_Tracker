@@ -18,6 +18,16 @@ export const getExpenses = async () => {
         console.error("Error:", error);
         throw error;
     }
+} 
+
+export const getTotalExpenseByCurrentMonth = async () => {
+    try {
+        const response = await api.get(`expenses/total-expense/current-month`);
+        return response.data;
+    } catch (error) {
+        console.error("Error:", error);
+        throw error;
+    }
 }
 
 export const getExpenseById = async (expenseId) => {
