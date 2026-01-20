@@ -12,7 +12,7 @@ export class ExpensesService {
     private expenseRepository: Repository<Expense>,
   ) { }
 
-  async createExpense(createExpenseDto: CreateExpenseDto): Promise<Expense> {
+  async createExpense(createExpenseDto: CreateExpenseDto): Promise<{ message: string; data: any }> {
     const title = createExpenseDto.title.trim();
 
     // 🔹 Parse date (dd-mm-yyyy)
@@ -42,7 +42,18 @@ export class ExpensesService {
       date,
     });
 
-    return this.expenseRepository.save(expense);
+    const saved = await this.expenseRepository.save(expense);
+
+    return {
+      message: 'Expense created successfully',
+      data: {
+        id: saved.id,
+        title: saved.title,
+        category: saved.category,
+        amount: saved.amount,
+        date: this.formatDate(saved.date),
+      },
+    };
   }
 
 
@@ -55,26 +66,24 @@ export class ExpensesService {
   }
 
 
-  async getAllExpenses(): Promise<any[]> {
+  async getAllExpenses(): Promise<{ message: string; data: any[] }> {
     const expenses = await this.expenseRepository.find({
-      order: {
-        createdAt: 'DESC',
-      },
+      order: { createdAt: 'DESC' },
     });
 
-
-    return expenses.map(exp => ({
-      id: exp.id,
-      title: exp.title,
-      category: exp.category,
-      amount: exp.amount,
-      date: this.formatDate(exp.date),
-    }));
+    return {
+      message: 'Expenses fetched successfully',
+      data: expenses.map(exp => ({
+        id: exp.id,
+        title: exp.title,
+        category: exp.category,
+        amount: exp.amount,
+        date: this.formatDate(exp.date),
+      })),
+    };
   }
 
-
-
-  async getExpenseById(id: string): Promise<any> {
+  async getExpenseById(id: string): Promise<{ message: string; data: any }> {
     const expense = await this.expenseRepository.findOne({ where: { id } });
 
     if (!expense) {
@@ -82,33 +91,27 @@ export class ExpensesService {
     }
 
     return {
-      id: expense.id,
-      title: expense.title,
-      category: expense.category,
-      amount: expense.amount,
-      date: this.formatDate(expense.date), // return in dd-mm-yyyy
+      message: 'Expense fetched successfully',
+      data: {
+        id: expense.id,
+        title: expense.title,
+        category: expense.category,
+        amount: expense.amount,
+        date: this.formatDate(expense.date),
+      },
     };
   }
 
-  async updateExpense(
-    id: string,
-    updateExpenseDto: UpdateExpenseDto,
-  ): Promise<any> {
+  async updateExpense(id: string, updateExpenseDto: UpdateExpenseDto): Promise<{ message: string; data: any }> {
     const expense = await this.expenseRepository.findOne({ where: { id } });
-
     if (!expense) {
       throw new NotFoundException(`Expense with ID ${id} not found`);
     }
 
-    // Handle date separately
     if (updateExpenseDto.date) {
       const [day, month, year] = updateExpenseDto.date.split('-').map(Number);
       const dateObj = new Date(year, month - 1, day);
-
-      if (isNaN(dateObj.getTime())) {
-        throw new BadRequestException('Invalid date');
-      }
-
+      if (isNaN(dateObj.getTime())) throw new BadRequestException('Invalid date');
       expense.date = dateObj;
     }
 
@@ -121,31 +124,30 @@ export class ExpensesService {
     const saved = await this.expenseRepository.save(expense);
 
     return {
-      id: saved.id,
-      title: saved.title,
-      category: saved.category,
-      amount: saved.amount,
-      date: this.formatDate(saved.date),
+      message: 'Expense updated successfully',
+      data: {
+        id: saved.id,
+        title: saved.title,
+        category: saved.category,
+        amount: saved.amount,
+        date: this.formatDate(saved.date),
+      },
     };
   }
 
-  async deleteExpense(id: string): Promise<{ message: string }> {
+  async deleteExpense(id: string): Promise<{ message: string; data: any[] }> {
     const expense = await this.expenseRepository.findOne({ where: { id } });
-
-    if (!expense) {
-      throw new NotFoundException(`Expense with ID ${id} not found`);
-    }
+    if (!expense) throw new NotFoundException(`Expense with ID ${id} not found`);
 
     await this.expenseRepository.remove(expense);
-
     return {
       message: 'Expense deleted successfully',
+      data: [],
     };
   }
 
-  async getCurrentMonthTotalExpense() {
+  async getCurrentMonthTotalExpense(): Promise<{ message: string; data: any }> {
     const now = new Date();
-
     const year = now.getFullYear();
     const month = now.getMonth(); // 0-based
 
@@ -160,12 +162,119 @@ export class ExpensesService {
       .getRawOne();
 
     return {
-      year,
-      month: month + 1, // convert to 1-based for response
-      totalExpense: Number(result.total),
+      message: 'Total expense fetched successfully',
+      data: {
+        year,
+        month: month + 1,
+        totalExpense: Number(result.total),
+      },
     };
   }
 
+async searchExpenses(
+  year?: number,
+  month?: number,
+  title?: string,
+  category?: string
+): Promise<{ message: string; data: any[] }> {
+  const now = new Date();
+
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  // Case: Only month → use current year
+  if (!year && month) {
+    year = now.getFullYear();
+  }
+
+  // At least one filter must exist
+  if (!year && !month && !title && !category) {
+    throw new BadRequestException('At least one filter (year, month, title, category) must be provided');
+  }
+
+  // Build startDate and endDate if year or month is provided
+  let startDate: Date | undefined;
+  let endDate: Date | undefined;
+
+  if (year) {
+    if (month) {
+      startDate = new Date(year, month - 1, 1);
+      endDate = new Date(year, month, 1);
+    } else {
+      startDate = new Date(year, 0, 1);
+      endDate = new Date(year + 1, 0, 1);
+    }
+  }
+
+  // Build query
+  const queryBuilder = this.expenseRepository.createQueryBuilder('expense');
+
+  if (startDate && endDate) {
+    queryBuilder.andWhere('expense.date >= :startDate AND expense.date < :endDate', { startDate, endDate });
+  }
+
+  if (title) {
+    queryBuilder.andWhere('expense.title ILIKE :title', { title: `%${title}%` });
+  }
+
+  if (category) {
+    queryBuilder.andWhere('expense.category ILIKE :category', { category: `%${category}%` });
+  }
+
+  queryBuilder.orderBy('expense.date', 'DESC');
+
+  const expenses = await queryBuilder.getMany();
+
+  // Handle no results
+  if (!expenses.length) {
+    let message = 'No expenses found';
+
+    if (year && month && title && category)
+      message = `No expenses found for "${title}" in "${category}" for ${months[month - 1]} ${year}`;
+    else if (year && month && title)
+      message = `No expenses found for "${title}" in ${months[month - 1]} ${year}`;
+    else if (year && month && category)
+      message = `No expenses found in "${category}" for ${months[month - 1]} ${year}`;
+    else if (year && month)
+      message = `No expenses found for ${months[month - 1]} ${year}`;
+    else if (year && title)
+      message = `No expenses found for "${title}" in year ${year}`;
+    else if (year && category)
+      message = `No expenses found in "${category}" for year ${year}`;
+    else if (month && title)
+      message = `No expenses found for "${title}" in ${months[month - 1]} ${now.getFullYear()}`;
+    else if (month && category)
+      message = `No expenses found in "${category}" for ${months[month - 1]} ${now.getFullYear()}`;
+    else if (year)
+      message = `No expenses found for year ${year}`;
+    else if (month)
+      message = `No expenses found for ${months[month - 1]} ${year || now.getFullYear()}`;
+    else if (title && category)
+      message = `No expenses found for "${title}" in "${category}"`;
+    else if (title)
+      message = `No expenses found for title "${title}"`;
+    else if (category)
+      message = `No expenses found for category "${category}"`;
+
+    return { message, data: [] };
+  }
+
+  // Format results
+  const data = expenses.map(exp => ({
+    id: exp.id,
+    title: exp.title,
+    category: exp.category,
+    amount: exp.amount,
+    date: this.formatDate(exp.date),
+  }));
+
+  return {
+    message: 'Expenses fetched successfully',
+    data,
+  };
+}
 
 
 }
