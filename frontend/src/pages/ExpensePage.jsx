@@ -19,7 +19,7 @@ import ExpenseForm from "../components/expenses/ExpenseForm";
 import ExpenseList from "../components/expenses/ExpenseList";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteNotification from "../components/DeleteNotification";
-import { getExpenses, deleteExpense } from "../services/expenseService";
+import { getExpenses, deleteExpense, getTotalExpenseByCurrentMonth } from "../services/expenseService";
 
 const initialExpenses = [
     { id: 1, title: "Groceries", category: "Food", amount: 1200, date: "2025-01-10" },
@@ -42,11 +42,15 @@ function ExpensePage() {
     const theme = useTheme();
 
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
     const [selectedYear, setSelectedYear] = React.useState(currentYear);
     const [selectedMonth, setSelectedMonth] = useState("All");
 
 
     const [expenses, setExpenses] = useState([]);
+    const [curMonth, setCurMonth] = useState();
+    const [curYear, setCurYear] = useState();
+    const [totalExpenseByMonth, setTotalExpenseByMonth] = useState(0);
     const [openForm, setOpenForm] = useState(false);
     const [editingExpense, setEditingExpense] = useState(null);
     const [deleteId, setDeleteId] = useState(null);
@@ -70,10 +74,23 @@ function ExpensePage() {
         }
     };
 
+    const fetchTotalExpenseByCurrentMonth = async (year, month) => {
+        try {
+            const data = await getTotalExpenseByCurrentMonth();
+            setTotalExpenseByMonth(data.totalExpense || 0);
+            setCurMonth(data.month);
+            setCurYear(data.year);
+        } catch (error) {
+            console.error("Failed to fetch total expense by month", error);
+        }
+    };
+
     useEffect(() => {
         fetchExpenses();
+        fetchTotalExpenseByCurrentMonth();
     }, []);
 
+    console.log("totalExpenseByMonth", totalExpenseByMonth);    
 
     const filteredExpenses = useMemo(() => {
         return expenses.filter((e) => {
@@ -112,8 +129,8 @@ function ExpensePage() {
 
     const confirmDelete = async () => {
         try {
-            await deleteExpense(deleteId);   // ✅ API here
-            fetchExpenses();                 // refresh list
+            await deleteExpense(deleteId);   
+            fetchExpenses();                 
         } catch (error) {
             console.error("Failed to delete expense", error);
         } finally {
@@ -176,7 +193,7 @@ function ExpensePage() {
                             >
                                 <CardContent>
                                     <Typography variant="subtitle1" color="text.secondary">
-                                        Total Expenses of (Current Month)
+                                        Total Expenses of {months[curMonth - 1]} {curYear}
                                     </Typography>
 
                                     <Typography
@@ -185,7 +202,7 @@ function ExpensePage() {
                                         color="primary.main"
                                         sx={{ mt: 1 }}
                                     >
-                                        ₹25,000
+                                        ₹{totalExpenseByMonth ? totalExpenseByMonth : 0}
                                     </Typography>
                                 </CardContent>
                             </Card>
