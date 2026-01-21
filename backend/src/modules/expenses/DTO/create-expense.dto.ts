@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsPositive, Matches, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsPositive, IsUUID, Matches, MaxLength } from 'class-validator';
 
 export class CreateExpenseDto {
   @ApiProperty({ description: 'Title of the expense' })
@@ -9,8 +9,8 @@ export class CreateExpenseDto {
 
   @ApiProperty({ description: 'Category of the expense' })
   @IsNotEmpty({ message: 'Category is required' })
-  @MaxLength(50, { message: 'Category can be at most 50 characters' })
-  category: string;
+  @IsUUID('4', { message: 'Category must be a valid UUID' })
+  categoryId: string;
 
   @ApiProperty({ description: 'Amount of the expense' })
   @IsNotEmpty({ message: 'Amount is required' })
