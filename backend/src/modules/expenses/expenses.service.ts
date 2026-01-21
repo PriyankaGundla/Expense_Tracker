@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { Expense } from '../../entities/expense.entity';
 import { CreateExpenseDto } from './DTO/create-expense.dto';
 import { UpdateExpenseDto } from './DTO/update-expense.dto';
@@ -171,110 +171,115 @@ export class ExpensesService {
     };
   }
 
-async searchExpenses(
-  year?: number,
-  month?: number,
-  title?: string,
-  category?: string
-): Promise<{ message: string; data: any[] }> {
-  const now = new Date();
+  async searchExpenses(
+    year?: number,
+    month?: number,
+    searchText?: string,
+  ): Promise<{ message: string; data: any[] }> {
+    const now = new Date();
 
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
 
-  // Case: Only month → use current year
-  if (!year && month) {
-    year = now.getFullYear();
-  }
-
-  // At least one filter must exist
-  if (!year && !month && !title && !category) {
-    throw new BadRequestException('At least one filter (year, month, title, category) must be provided');
-  }
-
-  // Build startDate and endDate if year or month is provided
-  let startDate: Date | undefined;
-  let endDate: Date | undefined;
-
-  if (year) {
-    if (month) {
-      startDate = new Date(year, month - 1, 1);
-      endDate = new Date(year, month, 1);
-    } else {
-      startDate = new Date(year, 0, 1);
-      endDate = new Date(year + 1, 0, 1);
+    // Case: Only month → use current year
+    if (!year && month) {
+      year = now.getFullYear();
     }
+
+    // At least one filter must exist
+    if (!year && !month && !searchText) {
+      throw new BadRequestException('At least one filter (year, month, title, category) must be provided');
+    }
+
+    // Build startDate and endDate if year or month is provided
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+
+    if (year) {
+      if (month) {
+        startDate = new Date(year, month - 1, 1);
+        endDate = new Date(year, month, 1);
+      } else {
+        startDate = new Date(year, 0, 1);
+        endDate = new Date(year + 1, 0, 1);
+      }
+    }
+
+    // Build query
+    const queryBuilder = this.expenseRepository.createQueryBuilder('expense');
+
+    if (startDate && endDate) {
+      queryBuilder.andWhere('expense.date >= :startDate AND expense.date < :endDate', { startDate, endDate });
+    }
+
+    if (searchText) {
+      queryBuilder.andWhere(
+      new Brackets(qb => {
+        qb.where('expense.title ILIKE :searchText')
+          .orWhere('expense.category ILIKE :searchText');
+      }),
+      { searchText: `%${searchText}%` }
+    );
+    }
+
+    queryBuilder.orderBy('expense.date', 'DESC');
+
+    const expenses = await queryBuilder.getMany();
+
+    // Handle no results
+    if (!expenses.length) {
+      let message = 'No expenses found';
+
+      if (year && month && searchText)
+        message = `No expenses found for "${searchText}" in ${months[month - 1]} ${year}`;
+      else if (year && month)
+        message = `No expenses found for ${months[month - 1]} ${year}`;
+      else if (year && searchText)
+        message = `No expenses found for "${searchText}" in year ${year}`;
+      else if (month && searchText)
+        message = `No expenses found for "${searchText}" in ${months[month - 1]} ${now.getFullYear()}`;
+      else if (year)
+        message = `No expenses found for year ${year}`;
+      else if (month)
+        message = `No expenses found for ${months[month - 1]} ${year || now.getFullYear()}`;
+      else if (searchText)
+        message = `No expenses found for title "${searchText}"`;
+      else if (year && month)
+        message = `No expenses found for ${months[month - 1]} ${year}`;
+      else if (year && searchText)
+        message = `No expenses found for "${searchText}" in year ${year}`;
+      else if (month && searchText)
+        message = `No expenses found for "${searchText}" in ${months[month - 1]} ${now.getFullYear()}`;
+      else if (year)
+        message = `No expenses found for year ${year}`;
+      else if (month)
+        message = `No expenses found for ${months[month - 1]} ${year || now.getFullYear()}`;
+      else if (year)
+        message = `No expenses found for year ${year}`;
+      else if (month)
+        message = `No expenses found for ${months[month - 1]} ${year || now.getFullYear()}`;
+      else if (searchText)
+        message = `No expenses found for title "${searchText}"`;
+
+      return { message, data: [] };
+    }
+
+    // Format results
+    const data = expenses.map(exp => ({
+      id: exp.id,
+      title: exp.title,
+      category: exp.category,
+      amount: exp.amount,
+      date: this.formatDate(exp.date),
+    }));
+
+    return {
+      message: 'Expenses fetched successfully',
+      data,
+    };
   }
-
-  // Build query
-  const queryBuilder = this.expenseRepository.createQueryBuilder('expense');
-
-  if (startDate && endDate) {
-    queryBuilder.andWhere('expense.date >= :startDate AND expense.date < :endDate', { startDate, endDate });
-  }
-
-  if (title) {
-    queryBuilder.andWhere('expense.title ILIKE :title', { title: `%${title}%` });
-  }
-
-  if (category) {
-    queryBuilder.andWhere('expense.category ILIKE :category', { category: `%${category}%` });
-  }
-
-  queryBuilder.orderBy('expense.date', 'DESC');
-
-  const expenses = await queryBuilder.getMany();
-
-  // Handle no results
-  if (!expenses.length) {
-    let message = 'No expenses found';
-
-    if (year && month && title && category)
-      message = `No expenses found for "${title}" in "${category}" for ${months[month - 1]} ${year}`;
-    else if (year && month && title)
-      message = `No expenses found for "${title}" in ${months[month - 1]} ${year}`;
-    else if (year && month && category)
-      message = `No expenses found in "${category}" for ${months[month - 1]} ${year}`;
-    else if (year && month)
-      message = `No expenses found for ${months[month - 1]} ${year}`;
-    else if (year && title)
-      message = `No expenses found for "${title}" in year ${year}`;
-    else if (year && category)
-      message = `No expenses found in "${category}" for year ${year}`;
-    else if (month && title)
-      message = `No expenses found for "${title}" in ${months[month - 1]} ${now.getFullYear()}`;
-    else if (month && category)
-      message = `No expenses found in "${category}" for ${months[month - 1]} ${now.getFullYear()}`;
-    else if (year)
-      message = `No expenses found for year ${year}`;
-    else if (month)
-      message = `No expenses found for ${months[month - 1]} ${year || now.getFullYear()}`;
-    else if (title && category)
-      message = `No expenses found for "${title}" in "${category}"`;
-    else if (title)
-      message = `No expenses found for title "${title}"`;
-    else if (category)
-      message = `No expenses found for category "${category}"`;
-
-    return { message, data: [] };
-  }
-
-  // Format results
-  const data = expenses.map(exp => ({
-    id: exp.id,
-    title: exp.title,
-    category: exp.category,
-    amount: exp.amount,
-    date: this.formatDate(exp.date),
-  }));
-
-  return {
-    message: 'Expenses fetched successfully',
-    data,
-  };
-}
 
 
 }

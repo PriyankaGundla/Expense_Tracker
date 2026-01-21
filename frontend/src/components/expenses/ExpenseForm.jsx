@@ -103,7 +103,7 @@ function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
 
     const fetchExpense = async () => {
       try {
-        const data = await getExpenseById(expenseId);
+        const response = await getExpenseById(expenseId);
 
         const convertToInputDate = (date) => {
           const [day, month, year] = date.split("-");
@@ -112,10 +112,10 @@ function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
 
 
         setFormData({
-          title: data.title || "",
-          category: data.category || "",
-          amount: data.amount || "",
-          date: convertToInputDate(data.date),
+          title: response.data.title || "",
+          category: response.data.category || "",
+          amount: response.data.amount || "",
+          date: convertToInputDate(response.data.date),
         });
       } catch (error) {
         console.error("Failed to fetch expense", error);
@@ -149,7 +149,6 @@ function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
     if (!validate()) return;
 
     try {
-      console.log("Form Data to be saved:", formData);
       const formatDate = (date) => {
 
         const [year, month, day] = date.split("-");
@@ -162,7 +161,6 @@ function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
         date: formatDate(formData.date),
       }
 
-      console.log("expenseData", expenseData)
 
       if (expenseId) {
         // UPDATE

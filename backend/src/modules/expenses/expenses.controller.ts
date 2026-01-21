@@ -29,13 +29,11 @@ export class ExpensesController {
   @ApiOperation({ summary: 'Search expenses by year and/or month' })
   @ApiQuery({ name: 'year', required: false, type: Number })
   @ApiQuery({ name: 'month', required: false, type: Number })
-  @ApiQuery({ name: 'title', required: false, type: String })
-  @ApiQuery({ name: 'category', required: false, type: String })
+  @ApiQuery({ name: 'searchText', required: false, type: String })
   async searchExpenses(
     @Query('year') year?: number,
     @Query('month') month?: number,
-    @Query('title') title?: string,
-    @Query('category') category?: string,
+    @Query('searchText') searchText?: string,
   ) {
 
     if (year && !/^\d{4}$/.test(year.toString())) {
@@ -49,8 +47,7 @@ export class ExpensesController {
     return this.expensesService.searchExpenses(
       year ? Number(year) : undefined,
       month ? Number(month) : undefined,
-      title?.toString(),
-      category?.toString(),
+      searchText?.toString(),
     );
   }
 

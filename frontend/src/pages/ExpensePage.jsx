@@ -19,7 +19,7 @@ import ExpenseForm from "../components/expenses/ExpenseForm";
 import ExpenseList from "../components/expenses/ExpenseList";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteNotification from "../components/DeleteNotification";
-import { getExpenses, deleteExpense, getTotalExpenseByCurrentMonth } from "../services/expenseService";
+import { getExpenses, deleteExpense, getTotalExpenseByCurrentMonth, searchExpenses } from "../services/expenseService";
 
 const initialExpenses = [
     { id: 1, title: "Groceries", category: "Food", amount: 1200, date: "2025-01-10" },
@@ -37,15 +37,31 @@ const months = [
     "July", "August", "September", "October", "November", "December",
 ];
 
+const monthMap = {
+    January: 1,
+    February: 2,
+    March: 3,
+    April: 4,
+    May: 5,
+    June: 6,
+    July: 7,
+    August: 8,
+    September: 9,
+    October: 10,
+    November: 11,
+    December: 12,
+};
+
+
 
 function ExpensePage() {
     const theme = useTheme();
 
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
-    const [selectedYear, setSelectedYear] = React.useState(currentYear);
-    const [selectedMonth, setSelectedMonth] = useState("All");
-
+    const [selectedYear, setSelectedYear] = useState("");
+    const [selectedMonth, setSelectedMonth] = useState("");
+    const [searchText, setSearchText] = useState("");
 
     const [expenses, setExpenses] = useState([]);
     const [curMonth, setCurMonth] = useState();
@@ -63,12 +79,24 @@ function ExpensePage() {
         (_, index) => currentYear - index
     );
 
-    console.log("expenses", expenses);
+    const handleYearChange = (e) => {
+        setSelectedYear(e.target.value);
+    };
+
+    const handleMonthChange = (e) => {
+        setSelectedMonth(e.target.value);
+    };
+
+    const handleSearchChange = (e) => {
+        setSearchText(e.target.value);
+    };
+
+
 
     const fetchExpenses = async () => {
         try {
-            const data = await getExpenses();
-            setExpenses(data);
+            const response = await getExpenses();
+            setExpenses(response.data);
         } catch (error) {
             console.error("Failed to fetch expenses", error);
         }
@@ -76,10 +104,10 @@ function ExpensePage() {
 
     const fetchTotalExpenseByCurrentMonth = async (year, month) => {
         try {
-            const data = await getTotalExpenseByCurrentMonth();
-            setTotalExpenseByMonth(data.totalExpense || 0);
-            setCurMonth(data.month);
-            setCurYear(data.year);
+            const response = await getTotalExpenseByCurrentMonth();
+            setTotalExpenseByMonth(response.data.totalExpense || 0);
+            setCurMonth(response.data.month);
+            setCurYear(response.data.year);
         } catch (error) {
             console.error("Failed to fetch total expense by month", error);
         }
@@ -90,26 +118,69 @@ function ExpensePage() {
         fetchTotalExpenseByCurrentMonth();
     }, []);
 
-    console.log("totalExpenseByMonth", totalExpenseByMonth);    
+    useEffect(() => {
+        const hasActiveFilters =
+            selectedYear !== "" ||
+            selectedMonth !== "" ||
+            searchText.trim() !== "";
 
-    const filteredExpenses = useMemo(() => {
-        return expenses.filter((e) => {
-            const date = new Date(e.date);
-            const yearMatch = date.getFullYear() === selectedYear;
-            const monthMatch =
-                selectedMonth === "All" ||
-                date.toLocaleString("default", { month: "long" }) === selectedMonth;
+        if (hasActiveFilters) {
+            fetchSearchExpense();
+        } else {
+            fetchExpenses();
+        }
+    }, [selectedYear, selectedMonth, searchText]);
 
-            return yearMatch && monthMatch;
-        });
-    }, [expenses, selectedYear, selectedMonth]);
 
-    const totalExpense = useMemo(() => {
-        return filteredExpenses.reduce(
-            (sum, e) => sum + Number(e.amount || 0),
-            0
-        );
-    }, [filteredExpenses]);
+
+
+    const fetchSearchExpense = async () => {
+        try {
+            const filters = {};
+
+            if (selectedYear) {
+                filters.year = selectedYear;
+            }
+
+            if (selectedMonth) {
+                filters.month = monthMap[selectedMonth];
+            }
+
+            if (searchText.trim()) {
+                filters.searchText = searchText.trim();
+            }
+
+            const response = await searchExpenses(filters);
+            setExpenses(response.data);
+        } catch (error) {
+            console.error("Failed to search expenses", error);
+        }
+    };
+
+
+
+
+    console.log("Filters applied:", expenses)
+
+
+    // const filteredExpenses = useMemo(() => {
+    //     return expenses.filter((e) => {
+    //         const date = new Date(e.date);
+    //         const yearMatch = date.getFullYear() === selectedYear;
+    //         const monthMatch =
+    //             selectedMonth === "All" ||
+    //             date.toLocaleString("default", { month: "long" }) === selectedMonth;
+
+    //         return yearMatch && monthMatch;
+    //     });
+    // }, [expenses, selectedYear, selectedMonth]);
+
+    // const totalExpense = useMemo(() => {
+    //     return filteredExpenses.reduce(
+    //         (sum, e) => sum + Number(e.amount || 0),
+    //         0
+    //     );
+    // }, [filteredExpenses]);
 
 
     const handleAddClick = () => {
@@ -129,8 +200,8 @@ function ExpensePage() {
 
     const confirmDelete = async () => {
         try {
-            await deleteExpense(deleteId);   
-            fetchExpenses();                 
+            await deleteExpense(deleteId);
+            await fetchExpenses();
         } catch (error) {
             console.error("Failed to delete expense", error);
         } finally {
@@ -143,8 +214,6 @@ function ExpensePage() {
         setOpenDeleteDialog(false);
         setDeleteId(null);
     };
-
-
 
     return (
         <Box
@@ -224,8 +293,11 @@ function ExpensePage() {
                                     <Select
                                         label="Year"
                                         value={selectedYear}
-                                        onChange={(e) => setSelectedYear(e.target.value)}
+                                        onChange={handleYearChange}
+
+
                                     >
+
                                         {years.map((year) => (
                                             <MenuItem key={year} value={year}>
                                                 {year}
@@ -241,7 +313,7 @@ function ExpensePage() {
                                     <Select
                                         label="Month"
                                         value={selectedMonth}
-                                        onChange={(e) => setSelectedMonth(e.target.value)}
+                                        onChange={handleMonthChange}
                                     >
                                         <MenuItem value="All">All</MenuItem>
                                         {months.map((month) => (
@@ -255,12 +327,13 @@ function ExpensePage() {
                                 {/* Search */}
                                 <TextField
                                     size="small"
-                                    placeholder="Search..."
-                                    sx={{ minWidth: 200 }}
+                                    placeholder="Search title or category"
+                                    value={searchText}
+                                    onChange={handleSearchChange}
                                     InputProps={{
                                         startAdornment: (
                                             <InputAdornment position="start">
-                                                <SearchIcon color="action" />
+                                                <SearchIcon />
                                             </InputAdornment>
                                         ),
                                     }}
