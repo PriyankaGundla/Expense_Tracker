@@ -18,7 +18,7 @@ export const getExpenses = async () => {
         console.error("Error:", error);
         throw error;
     }
-} 
+}
 
 export const getTotalExpenseByCurrentMonth = async () => {
     try {
@@ -54,6 +54,22 @@ export const deleteExpense = async (expenseId) => {
     try {
         const response = await api.delete(`expenses/${expenseId}`);
         return response;
+    } catch (error) {
+        console.error("Error:", error);
+        throw error;
+    }
+}
+
+export const searchExpenses = async (filters) => {
+    console.log("Filters:", filters);
+    try {
+        const params = new URLSearchParams();
+
+
+        const response = await api.get("/expenses/search", {
+            params: filters,
+        });
+        return response.data;
     } catch (error) {
         console.error("Error:", error);
         throw error;

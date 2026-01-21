@@ -39,7 +39,6 @@ function Sidebar() {
       try {
         const user = JSON.parse(localStorage.getItem("user"));
         const userData = await getUserById(user.id);
-        console.log("User Data:", userData.name);
         setUser(userData);
       } catch (error) {
         console.error("Failed to fetch user data:", error);

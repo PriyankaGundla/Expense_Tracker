@@ -94,8 +94,6 @@ function Login() {
 
         try {
             const res = await auth(user);
-            console.log(res.data);
-
             const { accessToken, user: userData } = res.data;
             localStorage.setItem("accessToken", accessToken);
             localStorage.setItem("user", JSON.stringify(userData));

@@ -29,10 +29,6 @@ function ExpenseList({ expenses = [], onEdit, onDelete }) {
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
 
-  useEffect(() => {
-    console.log("onDelete", onDelete)
-  }, [])
-
   // 🔹 Pagination handlers
   const handleChangePage = (event, newPage) => {
     setPage(newPage);

@@ -135,7 +135,6 @@ function Signup() {
 
     try {
       const res = await createUser(user);
-      console.log(res.data);
       navigate("/login");
 
     } catch (err) {
