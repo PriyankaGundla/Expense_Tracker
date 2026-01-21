@@ -3,8 +3,10 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
+  ManyToOne
 } from 'typeorm';
+import { Category } from './category.entity';
 
 @Entity('expenses')
 export class Expense {
@@ -14,8 +16,11 @@ export class Expense {
   @Column({ length: 100 })
   title: string;
 
-  @Column({ length: 50 })
-  category: string;
+  @ManyToOne(() => Category, (category) => category.expenses, {
+    eager: true,          // auto-fetch category
+    onDelete: 'SET NULL', // safe delete
+  })
+  category: Category;
 
   @Column('decimal', { precision: 10, scale: 2 })
   amount: number;

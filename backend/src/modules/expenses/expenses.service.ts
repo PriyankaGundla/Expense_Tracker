@@ -4,19 +4,28 @@ import { Brackets, Repository } from 'typeorm';
 import { Expense } from '../../entities/expense.entity';
 import { CreateExpenseDto } from './DTO/create-expense.dto';
 import { UpdateExpenseDto } from './DTO/update-expense.dto';
+import { Category } from 'src/entities/category.entity';
 
 @Injectable()
 export class ExpensesService {
   constructor(
     @InjectRepository(Expense)
     private expenseRepository: Repository<Expense>,
+
+    @InjectRepository(Category)
+    private categoryRepository: Repository<Category>,
   ) { }
 
-  async createExpense(createExpenseDto: CreateExpenseDto): Promise<{ message: string; data: any }> {
-    const title = createExpenseDto.title.trim();
+  async createExpense(
+    createExpenseDto: CreateExpenseDto,
+  ): Promise<{ message: string; data: any }> {
+
+    const { title, categoryId, amount, date: dateString } = createExpenseDto;
+
+    const trimmedTitle = title.trim();
 
     // 🔹 Parse date (dd-mm-yyyy)
-    const [day, month, year] = createExpenseDto.date.split('-').map(Number);
+    const [day, month, year] = dateString.split('-').map(Number);
     const date = new Date(year, month - 1, day);
 
     if (isNaN(date.getTime())) {
@@ -26,7 +35,7 @@ export class ExpensesService {
     // 🔹 Check duplicate (same title + same date)
     const existingExpense = await this.expenseRepository
       .createQueryBuilder('expense')
-      .where('LOWER(expense.title) = LOWER(:title)', { title })
+      .where('LOWER(expense.title) = LOWER(:title)', { title: trimmedTitle })
       .andWhere('expense.date = :date', { date })
       .getOne();
 
@@ -36,10 +45,21 @@ export class ExpensesService {
       );
     }
 
+    // 🔹 Fetch Category
+    const category = await this.categoryRepository.findOne({
+      where: { id: categoryId },
+    });
+
+    if (!category) {
+      throw new BadRequestException('Invalid category');
+    }
+
+    // 🔹 Create Expense
     const expense = this.expenseRepository.create({
-      ...createExpenseDto,
-      title,
+      title: trimmedTitle,
+      amount,
       date,
+      category, // ✅ assign relation
     });
 
     const saved = await this.expenseRepository.save(expense);
@@ -55,6 +75,7 @@ export class ExpensesService {
       },
     };
   }
+
 
 
   private formatDate(date: Date | string): string {
@@ -208,7 +229,11 @@ export class ExpensesService {
     }
 
     // Build query
-    const queryBuilder = this.expenseRepository.createQueryBuilder('expense');
+    // const queryBuilder = this.expenseRepository.createQueryBuilder('expense');
+    const queryBuilder = this.expenseRepository
+      .createQueryBuilder('expense')
+      .leftJoinAndSelect('expense.category', 'category');
+
 
     if (startDate && endDate) {
       queryBuilder.andWhere('expense.date >= :startDate AND expense.date < :endDate', { startDate, endDate });
@@ -216,13 +241,14 @@ export class ExpensesService {
 
     if (searchText) {
       queryBuilder.andWhere(
-      new Brackets(qb => {
-        qb.where('expense.title ILIKE :searchText')
-          .orWhere('expense.category ILIKE :searchText');
-      }),
-      { searchText: `%${searchText}%` }
-    );
+        new Brackets(qb => {
+          qb.where('LOWER(expense.title) ILIKE LOWER(:searchText)')
+            .orWhere('LOWER(category.name) ILIKE LOWER(:searchText)');
+        }),
+        { searchText: `%${searchText}%` },
+      );
     }
+
 
     queryBuilder.orderBy('expense.date', 'DESC');
 

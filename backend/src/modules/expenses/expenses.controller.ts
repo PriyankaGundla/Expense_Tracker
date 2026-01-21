@@ -15,7 +15,6 @@ export class ExpensesController {
   @Post('/create-expense')
   @ApiOperation({ summary: 'create expense' })
   async createExpense(@Body() createExpenseDto: CreateExpenseDto) {
-    console.log('Creating expense with data:', createExpenseDto);
     return this.expensesService.createExpense(createExpenseDto);
   }
 
@@ -59,16 +58,22 @@ export class ExpensesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get expense by ID' })
-  async getById(
-    @Param('id', new ParseUUIDPipe()) id: string,
+  async getExpenseById(
+    @Param('id', new ParseUUIDPipe({
+      version: '4',
+      exceptionFactory: () => new BadRequestException('Invalid UUID'), 
+    }),) id: string,
   ) {
     return this.expensesService.getExpenseById(id);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update expense by ID' })
-  async update(
-    @Param('id') id: string,
+  async updateExpense(
+    @Param('id', new ParseUUIDPipe({
+      version: '4',
+      exceptionFactory: () => new BadRequestException('Invalid UUID'), 
+    }),) id: string,
     @Body() updateExpenseDto: UpdateExpenseDto,
   ) {
     return this.expensesService.updateExpense(id, updateExpenseDto);
@@ -76,7 +81,10 @@ export class ExpensesController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete expense by ID' })
-  async delete(@Param('id') id: string) {
+  async deleteExpense(@Param('id', new ParseUUIDPipe({
+      version: '4',
+      exceptionFactory: () => new BadRequestException('Invalid UUID'), 
+    }),) id: string) {
     return this.expensesService.deleteExpense(id);
   }
 
