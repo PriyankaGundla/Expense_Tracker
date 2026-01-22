@@ -12,96 +12,183 @@ import {
     MenuItem,
     Box,
 } from "@mui/material";
-
+import { createCategory, updateCategory, getCategoryById } from "../../services/categoryService";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import CategoryIcon from "@mui/icons-material/Category";
-
 import { CATEGORY_ICON_MAP } from "./icons";
-/* ICON MAP */
-// const ICON_MAP = {
-//     Food: <FastfoodIcon />,
-//     Bills: <ReceiptIcon />,
-//     Travel: <FlightIcon />,
-//     Shopping: <ShoppingCartIcon />,
-// };
 
+const NAME_REGEX = /^[a-zA-Z0-9 ]+$/;
+const ICON_REGEX = /^[a-zA-Z0-9_-]+$/;
 
-
-function CategoryForm({ open, onClose, onSave, category, usedIcons = [] }) {
+function CategoryForm({ open, onClose, onSuccess, category, categoryId, usedIcons = [] }) {
     const theme = useTheme();
     const usedIconSet = new Set(usedIcons);
 
-    /* FORM STATE */
-    const [name, setName] = useState("");
-    const [iconKey, setIconKey] = useState("");
+    const [formData, setFormData] = useState({
+        categoryName: "",
+        categoryIcon: "",
+    });
 
-    /* Save handler */
-    const handleSave = () => {
-        onSave({
-            name,
-            iconKey,
+    const [errors, setErrors] = useState({
+        categoryName: "",
+        categoryIcon: "",
+    });
+
+    const resetForm = () => {
+        setFormData({
+            categoryName: "",
+            categoryIcon: "",
         });
+
+        setErrors({
+            categoryName: "",
+            categoryIcon: "",
+        });
+    };
+
+    const validate = () => {
+        let valid = true;
+        const newErrors = { categoryName: "", categoryIcon: "" };
+
+        const { categoryName, categoryIcon } = formData;
+
+        if (!categoryName.trim()) {
+            newErrors.categoryName = "Category name is required";
+            valid = false;
+        } else if (categoryName.length > 50) {
+            newErrors.categoryName =
+                "Category name can be at most 50 characters";
+            valid = false;
+        } else if (!NAME_REGEX.test(categoryName)) {
+            newErrors.categoryName =
+                "Category name can only contain letters, numbers, and spaces";
+            valid = false;
+        }
+
+        if (!categoryIcon.trim()) {
+            newErrors.categoryIcon = "Icon is required";
+            valid = false;
+        } else if (categoryIcon.length > 50) {
+            newErrors.categoryIcon = "Icon can be at most 50 characters";
+            valid = false;
+        } else if (!ICON_REGEX.test(categoryIcon)) {
+            newErrors.categoryIcon =
+                "Icon can only contain letters, numbers, underscores, or dashes";
+            valid = false;
+        }
+
+        setErrors(newErrors);
+        return valid;
+    };
+
+    useEffect(() => {
+        if (!categoryId || !open) {
+            resetForm();
+            return;
+        }
+
+        const fetchCategory = async () => {
+            try {
+                const response = await getCategoryById(categoryId);
+
+                setFormData({
+                    categoryName: response.data.name || "",
+                    categoryIcon: response.data.icon || "",
+                });
+            } catch (error) {
+                console.error("Failed to fetch category", error);
+            }
+        };
+
+        fetchCategory();
+    }, [categoryId, open]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+
+        setErrors((prev) => ({
+            ...prev,
+            [name]: "",
+        }));
+    };
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        if (!validate()) return;
+        try {
+            const categoryData = {
+                name: formData.categoryName,
+                icon: formData.categoryIcon,
+            }
+
+            if (categoryId) {
+                await updateCategory(categoryId, categoryData);
+            } else {
+                await createCategory(categoryData);
+            }
+            onSuccess(); 
+            resetForm();
+            onClose();
+        } catch (error) {
+            console.error("Failed to create category", error);
+        }
     };
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-            <DialogTitle
-                sx={{ display: "flex", alignItems: "center", gap: 1, pt: 3 }}
-            >
-                {category ? (
-                    <EditIcon fontSize="small" />
-                ) : (
-                    <AddIcon fontSize="small" />
-                )}
+            <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                {category ? <EditIcon /> : <AddIcon />}
                 {category ? "Edit Category" : "Add Category"}
             </DialogTitle>
 
             <Divider />
 
             <DialogContent>
-                {/* Category Name */}
                 <TextField
                     fullWidth
                     margin="normal"
                     label="Category Name"
+                    name="categoryName"
                     variant="outlined"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    value={formData.categoryName}
+                    onChange={handleChange}
+                    helperText={errors.categoryName}
+                    FormHelperTextProps={{ sx: { color: "error.main", ml: 0 } }}
                     InputProps={{
                         startAdornment: (
                             <InputAdornment position="start">
-                                <CategoryIcon color="action" />
+                                <CategoryIcon />
                             </InputAdornment>
                         ),
-                        sx: { borderRadius: "15px" },
                     }}
                 />
 
-                {/* Icon Selector */}
                 <TextField
                     select
                     fullWidth
                     margin="normal"
                     label="Select Icon"
-                    value={iconKey}
-                    onChange={(e) => setIconKey(e.target.value)}
+                    name="categoryIcon"
+                    variant="outlined"
+                    value={formData.categoryIcon}
+                    onChange={handleChange}
+                    helperText={errors.categoryIcon}
+                    FormHelperTextProps={{ sx: { color: "error.main", ml: 0 } }}
+
                 >
                     {Object.keys(CATEGORY_ICON_MAP).map((key) => {
                         const isUsed =
                             usedIconSet.has(key) && key !== category?.iconKey;
-                        console.log("isUsed", isUsed)
+
                         return (
                             <MenuItem key={key} value={key} disabled={isUsed}>
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 1,
-                                        opacity: isUsed ? 0.5 : 1,
-                                        textTransform: "capitalize",
-                                    }}
-                                >
+                                <Box sx={{ display: "flex", gap: 1 }}>
                                     {CATEGORY_ICON_MAP[key]}
                                     {key}
                                     {isUsed && " (Used)"}
@@ -110,24 +197,26 @@ function CategoryForm({ open, onClose, onSave, category, usedIcons = [] }) {
                         );
                     })}
                 </TextField>
-
             </DialogContent>
 
             <Divider />
 
-            <DialogActions sx={{ px: 3, pb: 3, gap: 2 }}>
-                <Button onClick={onClose}>Cancel</Button>
+            <DialogActions sx={{ px: 3, pb: 3 }}>
                 <Button
-                    type="submit"
+                    onClick={() => {
+                        resetForm();
+                        onClose();
+                    }}
+                >
+                    Cancel
+                </Button>
+                <Button
                     variant="contained"
+                    onClick={handleSave}
                     sx={{
                         borderRadius: "15px",
-                        background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-                        "&:hover": {
-                            background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.primary.main} 100%)`,
-                        },
+                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                     }}
-                    onClick={handleSave}
                 >
                     Save
                 </Button>

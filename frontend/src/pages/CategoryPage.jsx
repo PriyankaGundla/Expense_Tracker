@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -16,7 +16,7 @@ import {
   MenuItem,
   Paper
 } from "@mui/material";
-
+import { getCategories } from "../services/categoryService";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import FlightIcon from "@mui/icons-material/Flight";
@@ -63,14 +63,26 @@ const INITIAL_CATEGORIES = [
 function Category() {
   const theme = useTheme();
 
-  const [categories, setCategories] = useState(INITIAL_CATEGORIES);
+  const [categories, setCategories] = useState([]);
 
-  // Dialog state
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [iconKey, setIconKey] = useState("food");
 
   const usedIcons = categories.map((cat) => cat.iconKey);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await getCategories();
+      setCategories(res.data);
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   /* ----------------------------------
      ADD CATEGORY HANDLER
@@ -107,12 +119,16 @@ function Category() {
           sx={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between", // search on left, button on right
+            justifyContent: "space-between",
             mb: 2,
             flexWrap: "wrap",
           }}
         >
-          <CategoryList />
+          <CategoryList
+            categoriesList={categories}
+            getAPI={fetchCategories}
+          />
+
         </Box>
       </Paper >
 
@@ -121,56 +137,7 @@ function Category() {
 
 
 
-      {/* ADD CATEGORY DIALOG */}
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth>
-        <DialogTitle>Add New Category</DialogTitle>
 
-        <DialogContent sx={{ mt: 1 }}>
-          <TextField
-            label="Category Name"
-            fullWidth
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-
-          <TextField
-            select
-            label="Select Icon"
-            fullWidth
-            value={iconKey}
-            onChange={(e) => setIconKey(e.target.value)}
-          >
-            {Object.keys(ICON_MAP).map((key) => {
-              const isUsed = usedIcons.includes(key);
-
-              return (
-                <MenuItem key={key} value={key} disabled={isUsed}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      opacity: isUsed ? 0.5 : 1,
-                      textTransform: "capitalize",
-                    }}
-                  >
-                    {ICON_MAP[key]}
-                    {key} {isUsed && "(Used)"}
-                  </Box>
-                </MenuItem>
-              );
-            })}
-          </TextField>
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleAddCategory}>
-            Add
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }
