@@ -144,7 +144,7 @@ function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
 
 
 
-  const onSave = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
@@ -300,7 +300,7 @@ function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
               background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.primary.main} 100%)`,
             },
           }}
-          onClick={onSave}
+          onClick={handleSave}
         >
           Save
         </Button>

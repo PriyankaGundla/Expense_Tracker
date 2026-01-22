@@ -8,6 +8,7 @@ import {
     TablePagination,
     useTheme
 } from "@mui/material";
+import { deleteCategory } from "../../services/categoryService";
 import CategoryForm from "./CategoryForm";
 import AddIcon from "@mui/icons-material/Add";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
@@ -25,22 +26,17 @@ import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DeleteNotification from "../DeleteNotification";
 
-function CategoryList() {
+function CategoryList({ categoriesList = [], getAPI }) {
     const theme = useTheme();
     const [openForm, setOpenForm] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState(null);
 
-    const [openDelete, setOpenDelete] = useState(false);
-    const [categoryToDelete, setCategoryToDelete] = useState(null);
+    const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
+    const [deleteCategoryId, setDeleteCategoryId] = useState(null);
 
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(9);
 
-    const [categories, setCategories] = useState([
-        { name: "Food", iconKey: "Food" },
-        { name: "Bills", iconKey: "Bills" },
-        { name: "Travel", iconKey: "Travel" },
-    ]);
 
     const categoryIcons = {
         Food: <RestaurantIcon />,
@@ -57,24 +53,32 @@ function CategoryList() {
         Subscriptions: <SubscriptionsIcon />,
     };
 
-    // Pagination logic
-    const totalItems = categories.length;
-    const paginatedCategories = categories.slice(
+    const totalItems = categoriesList.length;
+    const paginatedCategories = categoriesList.slice(
         page * rowsPerPage,
         page * rowsPerPage + rowsPerPage
     );
 
-    const handleDelete = (cat) => {
-        setCategoryToDelete(cat);
-        setOpenDelete(true);
+    const handleDelete = (id) => {
+        setDeleteCategoryId(id);
+        setOpenConfirmDelete(true);       
     };
 
-    const confirmDelete = () => {
-        setCategories((prev) =>
-            prev.filter((c) => c.iconKey !== categoryToDelete.iconKey)
-        );
-        setOpenDelete(false);
-        setCategoryToDelete(null);
+    const confirmDelete = async () => {
+        try {
+            await deleteCategory(deleteCategoryId);
+            await getAPI();
+        } catch (error) {
+            console.error("Failed to delete expense", error);
+        } finally {
+            setOpenConfirmDelete(false);
+            setDeleteCategoryId(null);
+        }
+    };
+
+    const cancelDelete = () => {
+        setOpenConfirmDelete(false);
+        setDeleteCategoryId(null);
     };
 
     return (
@@ -185,8 +189,8 @@ function CategoryList() {
                                         zIndex: 10,
                                     }}
                                     onClick={(e) => {
-                                        e.stopPropagation(); 
-                                        handleDelete(cat);
+                                        e.stopPropagation();
+                                        handleDelete(cat.id);
                                     }}
                                 />
 
@@ -199,7 +203,7 @@ function CategoryList() {
                                         color: "#2e7d32",
                                     }}
                                 >
-                                    {categoryIcons[cat.iconKey]}
+                                    {categoryIcons[cat.icon]}
                                 </Avatar>
 
                                 <Typography fontWeight={700} variant="h6">
@@ -236,7 +240,7 @@ function CategoryList() {
                         rowsPerPage={rowsPerPage}
                         onRowsPerPageChange={(e) => {
                             setRowsPerPage(parseInt(e.target.value, 10));
-                            setPage(0); // reset to first page
+                            setPage(0); 
                         }}
                         rowsPerPageOptions={[9, 14, 24]}
                     />
@@ -247,26 +251,16 @@ function CategoryList() {
                 open={openForm}
                 onClose={() => setOpenForm(false)}
                 category={selectedCategory}
-                onSave={(data) => {
-                    if (selectedCategory) {
-                        setCategories((prev) =>
-                            prev.map((c) =>
-                                c.iconKey === selectedCategory.iconKey
-                                    ? { ...data }
-                                    : c
-                            )
-                        );
-                    } else {
-                        setCategories((prev) => [...prev, data]);
-                    }
-                    setOpenForm(false);
-                }}
-                usedIcons={categories.map((c) => c.iconKey)}
+                categoryId={selectedCategory?.id}   
+                onSuccess={getAPI}
+                usedIcons={categoriesList.map((c) => c.icon)}
             />
 
+
+
             <DeleteNotification
-                open={openDelete}
-                onClose={() => setOpenDelete(false)}
+                open={openConfirmDelete}
+                onClose={cancelDelete}
                 onConfirm={confirmDelete}
                 name={"category"}
             />
