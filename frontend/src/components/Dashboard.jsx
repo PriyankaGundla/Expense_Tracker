@@ -1,3 +1,4 @@
+import React, { use, useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -14,9 +15,10 @@ import {
 } from "@mui/material";
 import RechartsPie from "./dashboard/PieChart";
 import MonthlyExpenseLine from "./dashboard/GraphChart";
-
+import { getExpenses } from "../services/expenseService";
 function Dashboard() {
   const theme = useTheme();
+  const [recentExpenses, setRecentExpenses] = useState([]);
 
   const summaryData = [
     { title: "Total Income", value: "₹ 1,20,000", color: "#def5e0ff", textColor: "#2e7d32" },
@@ -25,12 +27,34 @@ function Dashboard() {
 
   ];
 
-  const recentExpenses = [
-    { date: "Jan 02", category: "Food", description: "Lunch", amount: 350 },
-    { date: "Jan 05", category: "Transport", description: "Metro", amount: 120 },
-    { date: "Jan 08", category: "Shopping", description: "Clothes", amount: 2500 },
-    { date: "Jan 10", category: "Bills", description: "Electricity", amount: 1800 },
-  ];
+  const fetchRecentExpenses = async () => {
+    try {
+      const response = await getExpenses();
+      const expenses = response.data;
+
+      const parseDate = (dateStr) => {
+        const [day, month, year] = dateStr.split("-");
+        return new Date(year, month - 1, day);
+      };
+
+      const sortedExpenses = [...expenses].sort(
+        (a, b) => parseDate(b.date) - parseDate(a.date)
+      );
+
+      setRecentExpenses(sortedExpenses.slice(0, 4));
+    } catch (error) {
+      console.error("Failed to fetch expenses", error);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchRecentExpenses();
+  }, []);
+
+
+  console.log(recentExpenses);
+
 
   return (
     <Box sx={{ minHeight: "92vh", p: 3, background: theme.palette.background.default }}>
@@ -86,7 +110,7 @@ function Dashboard() {
               ))}
 
               {/* ===== Table After Cards ===== */}
-              <Box sx={{ mt: 1, width: "220%" }}>
+              <Box sx={{ mt: 1, width: "210%" }}>
                 <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
                   Recent Expenses
                 </Typography>
@@ -114,8 +138,8 @@ function Dashboard() {
                         <TableRow key={index}>
                           <TableCell align="center">{index + 1}</TableCell> {/* Serial Number */}
                           <TableCell align="center">{row.date}</TableCell>
-                          <TableCell align="center">{row.category}</TableCell>
-                          <TableCell align="center">{row.description}</TableCell>
+                          <TableCell align="center">{row.category?.name}</TableCell>
+                          <TableCell align="center">{row.title}</TableCell>
                           <TableCell align="center">
                             <Box
                               sx={{

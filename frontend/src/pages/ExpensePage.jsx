@@ -379,6 +379,7 @@ function ExpensePage() {
                             onClose={() => setOpenForm(false)}
                             expenseId={editingExpense?.id}
                             onSuccess={fetchExpenses}
+                            currentMonthExpense={fetchTotalExpenseByCurrentMonth}
                         />
                     </Box>
 
