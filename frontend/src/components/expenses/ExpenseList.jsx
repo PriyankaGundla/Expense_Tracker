@@ -97,7 +97,7 @@ function ExpenseList({ expenses = [], onEdit, onDelete }) {
                 </TableCell>
 
                 <TableCell align="center" sx={{ fontSize: "1rem" }}>
-                  {expense.category}
+                  {expense.category?.name}
                 </TableCell>
 
                 <TableCell align="center">

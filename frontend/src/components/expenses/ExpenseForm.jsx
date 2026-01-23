@@ -18,11 +18,13 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import TitleIcon from '@mui/icons-material/Title';
 import { createExpense, getExpenseById, updateExpense } from "../../services/expenseService";
+import { getCategories } from "../../services/categoryService";
 
-const categories = ["Food", "Bills", "Travel", "Shopping", "Other"];
+// const categories = ["Food", "Bills", "Travel", "Shopping", "Other"];
 
-function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
+function ExpenseForm({ open, onClose, expense, onSuccess, expenseId, currentMonthExpense }) {
   const theme = useTheme();
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -36,6 +38,26 @@ function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
     amount: "",
     date: "",
   });
+
+  const fetchCategories = async () => {
+    try {
+      const res = await getCategories();
+
+      const category = res.data.map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+      }));
+
+      setCategories(category);
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
 
   const resetForm = () => {
     setFormData({
@@ -113,7 +135,7 @@ function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
 
         setFormData({
           title: response.data.title || "",
-          category: response.data.category || "",
+          category: response.data.category?.id || "",
           amount: response.data.amount || "",
           date: convertToInputDate(response.data.date),
         });
@@ -154,22 +176,28 @@ function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
         const [year, month, day] = date.split("-");
         return `${day}-${month}-${year}`;
       };
-      const expenseData = {
-        title: formData.title,
-        category: formData.category,
-        amount: parseFloat(formData.amount),
-        date: formatDate(formData.date),
-      }
+
 
 
       if (expenseId) {
-        // UPDATE
+        const expenseData = {
+          title: formData.title,
+          category: formData.category,
+          amount: parseFloat(formData.amount),
+          date: formatDate(formData.date),
+        }
         await updateExpense(expenseId, expenseData);
       } else {
-        // CREATE
+        const expenseData = {
+          title: formData.title,
+          categoryId: formData.category,
+          amount: parseFloat(formData.amount),
+          date: formatDate(formData.date),
+        }
         await createExpense(expenseData);
-      } 
+      }
       onSuccess(); // triggers GET API in parent
+      currentMonthExpense(); // to refresh current month expense in dashboard
       resetForm();
 
       onClose();
@@ -231,9 +259,9 @@ function ExpenseForm({ open, onClose, expense, onSuccess, expenseId }) {
             sx: { borderRadius: "15px" },
           }}
         >
-          {categories.map((c) => (
-            <MenuItem key={c} value={c}>
-              {c}
+          {categories.map((cat) => (
+            <MenuItem key={cat.id} value={cat.id}>
+              {cat.name}
             </MenuItem>
           ))}
         </TextField>
