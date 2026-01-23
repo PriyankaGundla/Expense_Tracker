@@ -307,5 +307,40 @@ export class ExpensesService {
     };
   }
 
+  async getCategorySummary(year: number, month?: number) {
+    let startDate: Date;
+    let endDate: Date;
+
+    if (month) {
+      if (month < 1 || month > 12) {
+        throw new BadRequestException('Month must be between 1 and 12');
+      }
+
+      // Month-wise (JS month is 0-based)
+      startDate = new Date(year, month - 1, 1);
+      endDate = new Date(year, month, 1);
+    } else {
+      // Year-wise
+      startDate = new Date(year, 0, 1);
+      endDate = new Date(year + 1, 0, 1);
+    }
+
+    return this.expenseRepository
+      .createQueryBuilder('expense')
+      .leftJoin('expense.category', 'category')
+      .select('category.id', 'category_id')
+      .addSelect('category.name', 'category_name')
+      .addSelect('SUM(expense.amount)', 'amount')
+      .where('expense.date >= :startDate', { startDate })
+      .andWhere('expense.date < :endDate', { endDate })
+      .groupBy('category.id')
+      .addGroupBy('category.name')
+      .getRawMany();
+
+
+  }
+
+
+
 
 }
