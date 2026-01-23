@@ -56,12 +56,26 @@ export class ExpensesController {
     return this.expensesService.getCurrentMonthTotalExpense();
   }
 
+  @Get("category-summary")
+  @ApiOperation({ summary: 'Fetch category-wise expense summary for a given year and optional month' })
+  @ApiQuery({ name: 'year', required: true })
+  @ApiQuery({ name: 'month', required: false })
+  async getCategorySummary(
+    @Query("year") year: number,
+    @Query("month") month?: number,
+  ) {
+    if (year && !/^\d{4}$/.test(year.toString())) {
+      throw new BadRequestException('Year must be a 4-digit number');
+    }
+    return this.expensesService.getCategorySummary(+year, month);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get expense by ID' })
   async getExpenseById(
     @Param('id', new ParseUUIDPipe({
       version: '4',
-      exceptionFactory: () => new BadRequestException('Invalid UUID'), 
+      exceptionFactory: () => new BadRequestException('Invalid UUID'),
     }),) id: string,
   ) {
     return this.expensesService.getExpenseById(id);
@@ -72,7 +86,7 @@ export class ExpensesController {
   async updateExpense(
     @Param('id', new ParseUUIDPipe({
       version: '4',
-      exceptionFactory: () => new BadRequestException('Invalid UUID'), 
+      exceptionFactory: () => new BadRequestException('Invalid UUID'),
     }),) id: string,
     @Body() updateExpenseDto: UpdateExpenseDto,
   ) {
@@ -82,11 +96,12 @@ export class ExpensesController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete expense by ID' })
   async deleteExpense(@Param('id', new ParseUUIDPipe({
-      version: '4',
-      exceptionFactory: () => new BadRequestException('Invalid UUID'), 
-    }),) id: string) {
+    version: '4',
+    exceptionFactory: () => new BadRequestException('Invalid UUID'),
+  }),) id: string) {
     return this.expensesService.deleteExpense(id);
   }
+
 
 
 
