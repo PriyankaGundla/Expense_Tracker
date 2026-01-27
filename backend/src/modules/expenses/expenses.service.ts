@@ -310,22 +310,21 @@ export class ExpensesService {
   async getCategorySummary(year: number, month?: number) {
     let startDate: Date;
     let endDate: Date;
+    const now = new Date();
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
 
     if (month) {
-      if (month < 1 || month > 12) {
-        throw new BadRequestException('Month must be between 1 and 12');
-      }
-
-      // Month-wise (JS month is 0-based)
       startDate = new Date(year, month - 1, 1);
       endDate = new Date(year, month, 1);
     } else {
-      // Year-wise
       startDate = new Date(year, 0, 1);
       endDate = new Date(year + 1, 0, 1);
     }
 
-    return this.expenseRepository
+    const result = await this.expenseRepository
       .createQueryBuilder('expense')
       .leftJoin('expense.category', 'category')
       .select('category.id', 'category_id')
@@ -338,7 +337,35 @@ export class ExpensesService {
       .getRawMany();
 
 
+
+    const formatted = result.map(item => ({
+      category: {
+        id: item.category_id,
+        name: item.category_name,
+      },
+      amount: Number(item.amount),
+    }));
+
+    if (!formatted.length) {
+      let message = 'No expenses found';
+
+      if (year && month)
+        message = `No expenses found for ${months[month - 1]}, ${year}`;
+      else if (year)
+        message = `No expenses found for year ${year}`;
+      else if (month)
+        message = `No expenses found for ${months[month - 1]}, ${year || now.getFullYear()}`;
+      return { message, data: [] };
+    }
+
+    return {
+      message: 'Category-wise expense summary fetched successfully',
+      data: formatted, // <-- only the array, no nested message
+    };
+
   }
+
+
 
 
 
