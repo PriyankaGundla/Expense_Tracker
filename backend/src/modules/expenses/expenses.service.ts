@@ -365,6 +365,46 @@ export class ExpensesService {
 
   }
 
+  async getMonthlyExpenseTrend(year: number) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year + 1, 0, 1);
+
+    const result = await this.expenseRepository
+      .createQueryBuilder('expense')
+      .select('EXTRACT(MONTH FROM expense.date)', 'month')
+      .addSelect('SUM(expense.amount)', 'expense')
+      .where('expense.date >= :startDate', { startDate })
+      .andWhere('expense.date < :endDate', { endDate })
+      .groupBy('month')
+      .orderBy('month', 'ASC')
+      .getRawMany();
+
+    // Map DB result → 12 months
+    const data = months.map((monthName, index) => {
+      const found = result.find(
+        r => Number(r.month) === index + 1,
+      );
+
+      return {
+        month: monthName,
+        expense: found ? Number(found.expense) : 0,
+      };
+    });
+
+    const hasData = data.some(d => d.expense > 0);
+
+    return {
+      message: hasData
+        ? 'Monthly expense trend fetched successfully'
+        : `No expenses found for year ${year}`,
+      data,
+    };
+  }
 
 
 

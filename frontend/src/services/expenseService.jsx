@@ -87,3 +87,15 @@ export const getExpensesByCategory = async (filters) => {
     }
 }
 
+export const getMonthlyExpenseTrend = async (year) => {
+     try {
+        const response = await api.get("/expenses/monthly-trend", {
+            params:{year} ,
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error:", error);
+        throw error;
+    }
+}
+
