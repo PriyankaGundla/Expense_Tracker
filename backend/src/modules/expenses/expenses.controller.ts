@@ -67,7 +67,17 @@ export class ExpensesController {
     if (year && !/^\d{4}$/.test(year.toString())) {
       throw new BadRequestException('Year must be a 4-digit number');
     }
-    return this.expensesService.getCategorySummary(+year, month);
+
+    if (month && (month < 1 || month > 12)) {
+      throw new BadRequestException('Month must be between 1 and 12');
+    }
+    
+    return await this.expensesService.getCategorySummary(+year, month);
+
+    // return {
+    //   message: 'Category-wise expense summary fetched successfully',
+    //   data,
+    // };
   }
 
   @Get(':id')

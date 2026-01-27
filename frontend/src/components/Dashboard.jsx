@@ -52,10 +52,6 @@ function Dashboard() {
     fetchRecentExpenses();
   }, []);
 
-
-  console.log(recentExpenses);
-
-
   return (
     <Box sx={{ minHeight: "92vh", p: 3, background: theme.palette.background.default }}>
       <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>

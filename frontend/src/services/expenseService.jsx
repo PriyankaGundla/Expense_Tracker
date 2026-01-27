@@ -61,12 +61,23 @@ export const deleteExpense = async (expenseId) => {
 }
 
 export const searchExpenses = async (filters) => {
-    console.log("Filters:", filters);
     try {
         const params = new URLSearchParams();
 
 
         const response = await api.get("/expenses/search", {
+            params: filters,
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error:", error);
+        throw error;
+    }
+}
+
+export const getExpensesByCategory = async (filters) => {
+    try {
+        const response = await api.get("/expenses/category-summary", {
             params: filters,
         });
         return response.data;
