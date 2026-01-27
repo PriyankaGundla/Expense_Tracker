@@ -71,7 +71,7 @@ export class ExpensesController {
     if (month && (month < 1 || month > 12)) {
       throw new BadRequestException('Month must be between 1 and 12');
     }
-    
+
     return await this.expensesService.getCategorySummary(+year, month);
 
     // return {
@@ -79,6 +79,21 @@ export class ExpensesController {
     //   data,
     // };
   }
+
+  @Get('monthly-trend')
+  @ApiOperation({ summary: 'Fetch monthly expense trend for a given year' })
+  @ApiQuery({ name: 'year', required: true })
+  async getMonthlyExpenseTrend(
+    @Query('year') year?: number,
+  ) {
+    if (year && !/^\d{4}$/.test(year.toString())) {
+      throw new BadRequestException('Year must be a 4-digit number');
+    }
+
+    const selectedYear = year || new Date().getFullYear();
+    return this.expensesService.getMonthlyExpenseTrend(selectedYear);
+  }
+
 
   @Get(':id')
   @ApiOperation({ summary: 'Get expense by ID' })

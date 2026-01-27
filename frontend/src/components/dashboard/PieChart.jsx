@@ -53,13 +53,13 @@ export default function RechartsPie() {
       };
 
       if (selectedMonth && selectedMonth !== "All") {
-        filters.month = monthMap[selectedMonth]; 
+        filters.month = monthMap[selectedMonth];
       }
 
       const response = await getExpensesByCategory(filters);
       if (!response.data || response.data.length === 0) {
         setCategoryData([]);
-        setMessage(response.message); 
+        setMessage(response.message);
         return;
       }
       const pieFormattedData = response.data.map(item => ({
@@ -155,9 +155,18 @@ export default function RechartsPie() {
             sliceLabelsTextColor="#fff"
           />
         ) : (
-          <Typography variant="body1" color="red" align="center">
-            {message || "No data available"}
-          </Typography>
+          <Box
+            sx={{
+              height: "85%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Typography color="red">
+              {message}
+            </Typography>
+          </Box>
         )
         }
       </Box>
